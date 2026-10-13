@@ -1,0 +1,6 @@
+{
+  "name": "TriageTalk - Emergency Speech Board",
+  "description": "Zero-friction, high-contrast emergency AAC speech board for non-verbal medical crises with keyboard navigation, Web Speech synthesis, and 2x2 quadrant triage state machine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

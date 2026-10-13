@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#0f172a] text-slate-100 select-none antialiased">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TriageTalk — Medical AAC Speech Board</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              850: '#131c2e',
+              900: '#0f172a',
+              950: '#090d16'
+            },
+            cyan: { 400: '#22d3ee', 500: '#06b6d4' },
+            rose: { 400: '#fb7185', 500: '#f43f5e' },
+            amber: { 400: '#fbbf24', 500: '#f59e0b' },
+            emerald: { 400: '#34d399', 500: '#10b981' }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: #0f172a;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    *, *::before, *::after {
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    *::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+      background: transparent !important;
+    }
+    :focus-visible {
+      outline: 3px solid #38bdf8 !important;
+      outline-offset: 3px !important;
+    }
+    @keyframes sound-bars {
+      0%, 100% { height: 6px; }
+      50% { height: 26px; }
+    }
+    .sound-bar {
+      animation: sound-bars 0.8s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full w-full overflow-hidden bg-[#0f172a] text-slate-100 flex flex-col font-sans">
+
+  <!-- A11y Live Screen Reader Announcer -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="assertive" aria-atomic="true">
+    TriageTalk ready. Select quadrant 1, 2, 3, or 4.
+  </div>
+
+  <!-- Subtle Autoplay Audio Unlock Notification -->
+  <aside id="audio-unlock-banner" class="fixed top-16 sm:top-20 inset-x-3 sm:inset-x-8 z-40 bg-slate-900/95 border border-cyan-500/40 text-slate-200 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-sm transition-all" role="alert">
+    <div class="flex items-center gap-3 min-w-0">
+      <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping shrink-0"></span>
+      <p class="truncate font-medium text-xs sm:text-sm">
+        <strong class="text-white">Audio initialization:</strong> Click anywhere or press any key to enable emergency speech audio.
+      </p>
+    </div>
+    <button id="btn-unlock-audio" type="button" class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0">
+      Enable Audio
+    </button>
+  </aside>
+
+  <!-- Top Active Speaking Indicator Beam -->
+  <div id="top-speech-beam" class="hidden fixed top-0 inset-x-0 z-50 h-1 bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 shadow-[0_0_12px_#06b6d4]"></div>
+
+  <!-- HEADER BAR (Responsive Clinical Orientation Clock & Big Disability Reset Button) -->
+  <header class="min-h-14 sm:min-h-16 md:min-h-18 shrink-0 bg-[#0f172a]/95 border-b border-slate-800 px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-1.5 sm:gap-3 md:gap-4 z-30 backdrop-blur-md" role="banner">
+    <!-- Left: Brand Title & Breadcrumbs -->
+    <div class="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0 shrink">
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-lg bg-slate-800/90 border border-slate-700 flex items-center justify-center text-cyan-400 font-black text-xs sm:text-sm md:text-base shadow-inner">
+          +
+        </div>
+        <span class="font-bold text-sm sm:text-base md:text-lg tracking-tight text-white flex items-center gap-1.5 truncate">
+          TriageTalk
+          <span class="text-[9px] sm:text-[10px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 hidden xl:inline">
+            AAC v2.0
+          </span>
+        </span>
+      </div>
+
+      <span class="text-slate-700 text-lg hidden lg:inline" aria-hidden="true">/</span>
+
+      <!-- Breadcrumbs Path (Large Screens) -->
+      <nav aria-label="Breadcrumb" class="truncate hidden lg:flex items-center gap-1.5 text-xs sm:text-sm min-w-0">
+        <span id="label-path" class="font-mono text-slate-500">PATH:</span>
+        <span id="breadcrumb-text" class="font-medium tracking-wide text-slate-300 truncate max-w-44 xl:max-w-xs">
+          Home
+        </span>
+      </nav>
+    </div>
+
+    <!-- Center: PERSISTENT CLINICAL ORIENTATION CLOCK (Date & Time for Disoriented Patients) -->
+    <div
+      class="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-lg sm:rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner shrink-0"
+      aria-label="Current date and time"
+      role="timer"
+    >
+      <div class="flex items-center gap-1 text-emerald-400 shrink-0">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden sm:inline-block" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      </div>
+      <div class="flex items-center gap-1.5 sm:gap-2 text-left font-mono leading-tight">
+        <!-- Date (hidden on mobile, visible on sm+) -->
+        <span id="clock-date" class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase whitespace-nowrap hidden sm:inline">
+          --
+        </span>
+        <span class="text-slate-700 hidden sm:inline" aria-hidden="true">•</span>
+        <!-- Time (Compact on mobile, full with seconds on sm+) -->
+        <span id="clock-time-mobile" class="sm:hidden text-xs font-bold text-white tracking-wider tabular-nums whitespace-nowrap">
+          --:--
+        </span>
+        <span id="clock-time" class="hidden sm:inline text-xs sm:text-sm font-bold text-white tracking-widest tabular-nums whitespace-nowrap">
+          --:--:--
+        </span>
+      </div>
+    </div>
+
+    <!-- Right Controls: Speaking Pill, Language Selector, and BIG DISABILITY-STYLED RESET BUTTON -->
+    <div class="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
+      <!-- Speaking State Pill (Desktop/Tablet) -->
+      <div id="speaking-pill" class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-medium shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse">
+        <div class="flex items-center gap-0.5 h-3">
+          <span class="w-0.5 bg-cyan-400 rounded-full sound-bar" style="animation-delay: 0.1s;"></span>
+          <span class="w-0.5 bg-cyan-300 rounded-full sound-bar" style="animation-delay: 0.25s;"></span>
+          <span class="w-0.5 bg-cyan-200 rounded-full sound-bar" style="animation-delay: 0.4s;"></span>
+          <span class="w-0.5 bg-cyan-400 rounded-full sound-bar" style="animation-delay: 0.15s;"></span>
+        </div>
+        <span id="label-broadcasting" class="tracking-wider uppercase text-[11px] hidden xl:inline">Broadcasting...</span>
+      </div>
+
+      <!-- Mobile Speaking Mini Indicator -->
+      <div id="speaking-pill-mobile" class="hidden md:hidden flex items-center justify-center w-7 h-7 rounded-lg bg-cyan-950/90 border border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.5)] animate-pulse" title="Audio Broadcasting">
+        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+      </div>
+
+      <!-- Language Selector Dropdown (Compact on mobile, full on tablet+) -->
+      <div class="relative shrink-0">
+        <label for="lang-select" class="sr-only">Select Language</label>
+        <select id="lang-select" class="h-10 sm:h-11 md:h-12 w-14 sm:w-auto px-1.5 sm:px-3 rounded-lg sm:rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-mono text-xs sm:text-sm font-bold cursor-pointer transition-colors focus:ring-2 focus:ring-cyan-500/50 outline-none text-center sm:text-left shadow-inner">
+          <option value="en">[EN] English</option>
+          <option value="es">[ES] Español</option>
+          <option value="hi">[HI] हिन्दी</option>
+          <option value="fr">[FR] Français</option>
+        </select>
+      </div>
+
+      <!-- BIG DISABILITY-ACCESSIBLE EMERGENCY RESET BUTTON -->
+      <button
+        id="btn-reset"
+        type="button"
+        class="group relative min-h-[44px] h-10 sm:h-11 md:h-12 px-2.5 sm:px-4 md:px-5 rounded-lg sm:rounded-xl bg-rose-950/90 hover:bg-rose-900 active:bg-rose-800 border-2 border-rose-500 hover:border-rose-400 text-white font-mono text-xs sm:text-sm font-black tracking-wider uppercase transition-all duration-150 flex items-center gap-1.5 sm:gap-2 cursor-pointer shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:shadow-[0_0_28px_rgba(244,63,94,0.55)] active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 touch-manipulation select-none shrink-0"
+        title="Emergency Reset to Home (ESC)"
+        aria-label="Emergency Reset to Home. Press Escape or tap this button."
+      >
+        <span class="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-rose-500/30 border border-rose-400/60 text-rose-300 group-hover:text-white group-hover:bg-rose-500/50 transition-colors shrink-0">
+          <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        </span>
+        <div class="flex items-baseline gap-1">
+          <span id="label-reset-btn-mobile" class="text-rose-100 group-hover:text-white font-black sm:hidden">RESET</span>
+          <span id="label-reset-btn" class="text-rose-100 group-hover:text-white font-black hidden sm:inline">RESET [ESC]</span>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- MOBILE-AWARE CATEGORY STATUS / BREADCRUMB STRIP (When inside Level 1 elimination tree) -->
+  <div
+    id="category-strip"
+    class="hidden bg-slate-900/95 border-b border-cyan-500/30 px-2.5 sm:px-4 md:px-6 py-1.5 flex items-center justify-between gap-2 text-xs sm:text-sm font-mono shrink-0 shadow-md backdrop-blur-md"
+    role="navigation"
+    aria-label="Active Category Navigation"
+  >
+    <div class="flex items-center gap-1.5 sm:gap-2 truncate min-w-0">
+      <span class="text-cyan-400 font-bold flex items-center gap-1 shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        <span class="text-[10px] sm:text-xs text-slate-400 uppercase font-semibold">CATEGORY:</span>
+      </span>
+      <span id="category-strip-title" class="text-white font-black uppercase tracking-wide truncate text-xs sm:text-sm">
+        --
+      </span>
+    </div>
+
+    <!-- Quick Back to Home Button -->
+    <button
+      id="btn-category-back"
+      type="button"
+      class="text-rose-300 hover:text-white bg-rose-950/60 hover:bg-rose-900/80 border border-rose-500/50 hover:border-rose-400 rounded-lg px-2 sm:px-3 py-1 font-mono text-[11px] sm:text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0 shadow-sm"
+      title="Return to main categories"
+      aria-label="Return to all 4 main categories"
+    >
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      <span id="label-category-return">MAIN MENU</span>
+    </button>
+  </div>
+
+  <!-- RESPONSIVE 2x2 SCREEN GRID: NO SCROLLBAR, FULL VIEWPORT FIT -->
+  <main id="quadrant-grid" class="flex-1 grid grid-cols-2 grid-rows-2 gap-2 sm:gap-3.5 md:gap-5 p-2 sm:p-3.5 md:p-5 min-h-0 h-full overflow-hidden" role="region" aria-label="Triage Navigation Quadrants">
+    <!-- Quadrants rendered dynamically -->
+  </main>
+
+  <!-- FULL-SCREEN VISUAL & AUDIO DISTRESS OVERLAY BANNER -->
+  <div id="distress-banner" class="hidden fixed inset-0 z-50 flex flex-col justify-between p-5 sm:p-8 md:p-14 bg-[#0f172a]/95 backdrop-blur-2xl transition-all" role="alert" aria-live="assertive">
+    <!-- Top Meta Bar -->
+    <div class="flex items-center justify-between w-full border-b border-slate-800 pb-3 sm:pb-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <span id="banner-accent-dot" class="w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping shrink-0"></span>
+        <div class="text-left truncate">
+          <div class="text-[11px] sm:text-xs font-mono tracking-widest text-slate-400 uppercase">CLINICAL TRIAGE BROADCAST</div>
+          <div id="banner-category" class="text-sm sm:text-base font-bold text-white tracking-wide truncate">Category</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div id="banner-timestamp" class="font-mono text-xs text-slate-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 hidden sm:inline">
+          Time: --:--:--
+        </div>
+        <button id="btn-banner-close" type="button" class="h-9 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-semibold uppercase tracking-wider border border-slate-700 transition-colors cursor-pointer">
+          DISMISS [ESC]
+        </button>
+      </div>
+    </div>
+
+    <!-- Giant Typography Message Center -->
+    <div id="banner-center-trigger" class="my-auto py-4 flex flex-col items-center justify-center text-center max-w-5xl mx-auto cursor-pointer" title="Click anywhere to return">
+      <div id="banner-icon-container" class="mb-3 sm:mb-4 text-cyan-400 opacity-90"></div>
+      
+      <!-- Giant phrase -->
+      <h1 id="banner-title" class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tight uppercase leading-tight drop-shadow-xl">
+        ALERT PHRASE
+      </h1>
+
+      <p id="banner-subtext" class="mt-2 sm:mt-4 text-sm sm:text-lg md:text-2xl text-slate-300 font-medium max-w-2xl">
+        Subtext explanation
+      </p>
+
+      <!-- Spoken transcript banner -->
+      <div class="mt-5 sm:mt-8 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-slate-700/80 text-cyan-300 text-xs sm:text-base md:text-lg font-mono max-w-3xl flex items-center gap-3 shadow-2xl">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        <span id="banner-speech-quote" class="truncate italic">"Speech broadcast phrase"</span>
+      </div>
+    </div>
+
+    <!-- Bottom Actions (Big Disability Accessible Targets) -->
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 w-full pt-4 sm:pt-6 border-t border-slate-800">
+      <button id="btn-repeat-speech" type="button" class="w-full sm:w-auto min-h-[48px] h-12 sm:h-14 px-6 sm:px-8 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-mono text-sm sm:text-base font-extrabold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        <span id="label-repeat-btn">REPEAT AUDIO [SPACE / R]</span>
+      </button>
+
+      <button id="btn-dismiss-overlay" type="button" class="w-full sm:w-auto min-h-[48px] h-12 sm:h-14 px-6 sm:px-8 rounded-xl bg-rose-950/80 hover:bg-rose-900 active:bg-rose-800 text-white border-2 border-rose-500 hover:border-rose-400 font-mono text-sm sm:text-base font-extrabold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(244,63,94,0.35)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-400">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        <span id="label-return-btn">RETURN TO BOARD [ESC]</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // --- COMPLETE MULTILINGUAL ENGINE & DATA DICTIONARY ---
+    const LOCALES = {
+      en: {
+        code: 'en-US',
+        name: 'English',
+        pathHome: 'Home',
+        ui: {
+          path: 'PATH:',
+          broadcasting: 'Broadcasting...',
+          reset: 'RESET [ESC]',
+          resetShort: 'RESET',
+          returnHome: 'MAIN MENU',
+          repeat: 'REPEAT AUDIO [SPACE / R]',
+          return: 'RETURN TO BOARD [ESC]',
+          select: 'SELECT',
+          key: 'KEY'
+        },
+        categories: [
+          {
+            id: 'help',
+            key: '01',
+            title: 'I NEED HELP',
+            subtitle: 'Nurse • Family • Water • Bathroom',
+            color: 'cyan',
+            borderClass: 'border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]',
+            textAccent: 'text-cyan-400',
+            bgGlow: 'bg-cyan-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
+            children: [
+              { key: '01', label: 'Nurse / Caregiver', sub: 'Assistance at bedside', speech: 'Patient Alert! ... Nurse or caregiver requested at bedside. ... Please assist.' },
+              { key: '02', label: 'Family / Doctor', sub: 'Contact physician or kin', speech: 'Patient Alert! ... Please contact my family or call the attending doctor.' },
+              { key: '03', label: 'Water / Ice', sub: 'Drink or ice chips request', speech: 'Patient Request. ... I need fresh water or ice chips, please.' },
+              { key: '04', label: 'Bathroom', sub: 'Restroom or bedpan help', speech: 'Patient Assistance Needed. ... I require immediate bathroom assistance.' }
+            ]
+          },
+          {
+            id: 'pain',
+            key: '02',
+            title: 'PAIN / DISCOMFORT',
+            subtitle: 'Chest • Head • Stomach • Limbs',
+            color: 'rose',
+            borderClass: 'border-rose-500/40 hover:border-rose-400 hover:shadow-[0_0_30px_rgba(244,63,94,0.25)]',
+            textAccent: 'text-rose-400',
+            bgGlow: 'bg-rose-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+            children: [
+              { key: '01', label: 'Chest & Breathing Pain', sub: 'Thoracic or lung pressure', speech: 'Urgent Medical Alert! ... Severe chest and breathing pain reported. ... Immediate evaluation required.', urgent: true },
+              { key: '02', label: 'Severe Head Pain', sub: 'Acute migraine or vertigo', speech: 'Medical Alert. ... Severe head pain and acute dizziness reported.' },
+              { key: '03', label: 'Stomach Pain', sub: 'Acute abdominal distress', speech: 'Medical Alert. ... Intense abdomen and stomach pain reported.' },
+              { key: '04', label: 'Limb / Back Pain', sub: 'Musculoskeletal pain', speech: 'Medical Alert. ... Severe acute pain in limbs or back reported.' }
+            ]
+          },
+          {
+            id: 'env',
+            key: '03',
+            title: 'ENVIRONMENT',
+            subtitle: 'Temperature • Noise • Lighting • Bed',
+            color: 'amber',
+            borderClass: 'border-amber-500/40 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)]',
+            textAccent: 'text-amber-400',
+            bgGlow: 'bg-amber-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+            children: [
+              { key: '01', label: 'Too Hot / Too Cold', sub: 'Thermostat or blankets', speech: 'Comfort Adjustment Request. ... The room is too hot or too cold. ... Please adjust temperature.' },
+              { key: '02', label: 'Too Loud / Noise', sub: 'Hallway or monitor sound', speech: 'Comfort Adjustment Request. ... Environment is too loud. ... Noise reduction requested.' },
+              { key: '03', label: 'Turn Off Lights', sub: 'Dim ambient illumination', speech: 'Comfort Adjustment Request. ... Please turn off or dim room lighting.' },
+              { key: '04', label: 'Adjust Bed Position', sub: 'Head or foot elevation', speech: 'Bed Adjustment Request. ... Please reposition the patient bed.' }
+            ]
+          },
+          {
+            id: 'emergency',
+            key: '04',
+            title: 'CRITICAL EMERGENCY',
+            subtitle: 'Breathing • Choking • Nausea • Fainting',
+            color: 'emerald',
+            borderClass: 'border-emerald-500/50 hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.35)]',
+            textAccent: 'text-emerald-400',
+            bgGlow: 'bg-emerald-500/5',
+            urgent: true,
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+            children: [
+              { key: '01', label: 'CANNOT BREATHE!', sub: 'Acute respiratory distress', speech: 'CRITICAL EMERGENCY! ... PATIENT CANNOT BREATHE! ... CODE ASSIST NEEDED IMMEDIATELY!', urgent: true },
+              { key: '02', label: 'SUFFOCATING / CHOKING!', sub: 'Airway obstruction', speech: 'CRITICAL EMERGENCY! ... AIRWAY OBSTRUCTION! ... SUFFOCATING OR CHOKING! ... RESPOND NOW!', urgent: true },
+              { key: '03', label: 'SEVERE NAUSEA', sub: 'Aspiration risk warning', speech: 'CRITICAL ALERT! ... Severe acute nausea and vomiting! ... Aspiration risk, assist immediately!', urgent: true },
+              { key: '04', label: 'FEELING FAINT / PASSING OUT', sub: 'Syncope or collapse imminent', speech: 'CRITICAL ALERT! ... Imminent loss of consciousness! ... Patient feeling faint and passing out!', urgent: true }
+            ]
+          }
+        ]
+      },
+      es: {
+        code: 'es-ES',
+        name: 'Español',
+        pathHome: 'Inicio',
+        ui: {
+          path: 'RUTA:',
+          broadcasting: 'Transmitiendo...',
+          reset: 'REINICIAR [ESC]',
+          resetShort: 'REINICIO',
+          returnHome: 'INICIO',
+          repeat: 'REPETIR AUDIO [ESPACIO / R]',
+          return: 'VOLVER AL TABLERO [ESC]',
+          select: 'ELEGIR',
+          key: 'TECLA'
+        },
+        categories: [
+          {
+            id: 'help',
+            key: '01',
+            title: 'NECESITO AYUDA',
+            subtitle: 'Enfermera • Familia • Agua • Baño',
+            color: 'cyan',
+            borderClass: 'border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]',
+            textAccent: 'text-cyan-400',
+            bgGlow: 'bg-cyan-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
+            children: [
+              { key: '01', label: 'Enfermera / Cuidador', sub: 'Asistencia en cama', speech: '¡Alerta de paciente! ... Se solicita enfermera o cuidador en la cama. ... Por favor asista.' },
+              { key: '02', label: 'Familia / Médico', sub: 'Contactar médico o pariente', speech: '¡Alerta de paciente! ... Por favor contacte a mi familia o llame al médico tratante.' },
+              { key: '03', label: 'Agua / Hielo', sub: 'Petición de bebida o hielo', speech: 'Solicitud de paciente. ... Necesito agua fresca o hielo, por favor.' },
+              { key: '04', label: 'Baño', sub: 'Ayuda para el sanitario', speech: 'Asistencia de paciente. ... Necesito ayuda inmediata para ir al baño.' }
+            ]
+          },
+          {
+            id: 'pain',
+            key: '02',
+            title: 'DOLOR / MALESTAR',
+            subtitle: 'Pecho • Cabeza • Estómago • Extremidades',
+            color: 'rose',
+            borderClass: 'border-rose-500/40 hover:border-rose-400 hover:shadow-[0_0_30px_rgba(244,63,94,0.25)]',
+            textAccent: 'text-rose-400',
+            bgGlow: 'bg-rose-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+            children: [
+              { key: '01', label: 'Dolor en Pecho y Respiración', sub: 'Presión torácica o pulmonar', speech: '¡Alerta médica urgente! ... Dolor severo en el pecho y al respirar. ... Evaluación inmediata requerida.', urgent: true },
+              { key: '02', label: 'Dolor de Cabeza Severo', sub: 'Migraña aguda o vértigo', speech: 'Alerta médica. ... Dolor de cabeza severo y mareo agudo reportado.' },
+              { key: '03', label: 'Dolor de Estómago', sub: 'Dolor abdominal agudo', speech: 'Alerta médica. ... Dolor intenso en el abdomen y estómago reportado.' },
+              { key: '04', label: 'Extremidades / Espalda', sub: 'Dolor muscular o espinal', speech: 'Alerta médica. ... Dolor severo en brazos, piernas o espalda.' }
+            ]
+          },
+          {
+            id: 'env',
+            key: '03',
+            title: 'ENTORNO',
+            subtitle: 'Temperatura • Ruido • Iluminación • Cama',
+            color: 'amber',
+            borderClass: 'border-amber-500/40 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)]',
+            textAccent: 'text-amber-400',
+            bgGlow: 'bg-amber-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+            children: [
+              { key: '01', label: 'Mucho Calor / Frío', sub: 'Termostato o sábanas', speech: 'Solicitud de confort. ... La habitación está muy caliente o fría. ... Ajuste la temperatura.' },
+              { key: '02', label: 'Mucho Ruido', sub: 'Ruido de pasillo o monitores', speech: 'Solicitud de confort. ... El entorno es muy ruidoso. ... Se solicita reducción de ruido.' },
+              { key: '03', label: 'Apagar Luces', sub: 'Atenuar iluminación', speech: 'Solicitud de confort. ... Por favor apague o atenúe las luces de la habitación.' },
+              { key: '04', label: 'Ajustar Cama', sub: 'Elevar cabeza o pies', speech: 'Solicitud de cama. ... Por favor ajuste la posición de la cama del paciente.' }
+            ]
+          },
+          {
+            id: 'emergency',
+            key: '04',
+            title: 'EMERGENCIA CRÍTICA',
+            subtitle: 'Respiración • Asfixia • Náuseas • Desmayo',
+            color: 'emerald',
+            borderClass: 'border-emerald-500/50 hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.35)]',
+            textAccent: 'text-emerald-400',
+            bgGlow: 'bg-emerald-500/5',
+            urgent: true,
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+            children: [
+              { key: '01', label: '¡NO PUEDO RESPIRAR!', sub: 'Dificultad respiratoria aguda', speech: '¡EMERGENCIA CRÍTICA! ... ¡EL PACIENTE NO PUEDE RESPIRAR! ... ¡CÓDIGO DE ASISTENCIA INMEDIATO!', urgent: true },
+              { key: '02', label: '¡ASFIXIA / ATRAGANTAMIENTO!', sub: 'Obstrucción de vía aérea', speech: '¡EMERGENCIA CRÍTICA! ... ¡OBSTRUCCIÓN DE VÍAS AÉREAS! ... ¡RESPONDA DE INMEDIATO!', urgent: true },
+              { key: '03', label: 'NÁUSEA SEVERA', sub: 'Riesgo de broncoaspiración', speech: '¡ALERTA CRÍTICA! ... ¡Náuseas y vómitos severos! ... ¡Riesgo de aspiración, asista ya!', urgent: true },
+              { key: '04', label: 'DESMAYO INMINENTE', sub: 'Síncope o pérdida de consciencia', speech: '¡ALERTA CRÍTICA! ... ¡Pérdida de conciencia inminente! ... ¡El paciente se siente desmayar!', urgent: true }
+            ]
+          }
+        ]
+      },
+      hi: {
+        code: 'hi-IN',
+        name: 'हिन्दी',
+        pathHome: 'होम',
+        ui: {
+          path: 'मार्ग:',
+          broadcasting: 'प्रसारित हो रहा है...',
+          reset: 'रीसेट [ESC]',
+          resetShort: 'रीसेट',
+          returnHome: 'मुख्य',
+          repeat: 'ऑडियो दोहराएं [SPACE / R]',
+          return: 'बोर्ड पर लौटें [ESC]',
+          select: 'चुनें',
+          key: 'कुंजी'
+        },
+        categories: [
+          {
+            id: 'help',
+            key: '01',
+            title: 'मुझे मदद चाहिए',
+            subtitle: 'नर्स • परिवार • पानी • शौचालय',
+            color: 'cyan',
+            borderClass: 'border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]',
+            textAccent: 'text-cyan-400',
+            bgGlow: 'bg-cyan-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
+            children: [
+              { key: '01', label: 'नर्स / देखभालकर्ता', sub: 'बिस्तर पर तुरंत सहायता', speech: 'मरीज़ अलर्ट! ... नर्स या देखभालकर्ता की बिस्तर पर तुरंत आवश्यकता है। ... कृपया मदद करें।' },
+              { key: '02', label: 'परिवार / डॉक्टर', sub: 'डॉक्टर या परिजन को बुलाएं', speech: 'मरीज़ अलर्ट! ... कृपया मेरे परिवार या डॉक्टर को तुरंत सूचित करें।' },
+              { key: '03', label: 'पानी / बर्फ', sub: 'पानी या बर्फ का अनुरोध', speech: 'मरीज़ अनुरोध। ... मुझे पीने का पानी या बर्फ चाहिए, कृपया।' },
+              { key: '04', label: 'शौचालय', sub: 'शौचालय जाने में मदद', speech: 'सहायता आवश्यक। ... मुझे शौचालय के लिए तुरंत मदद चाहिए।' }
+            ]
+          },
+          {
+            id: 'pain',
+            key: '02',
+            title: 'दर्द / बेचैनी',
+            subtitle: 'छाती • सिर • पेट • हाथ-पैर',
+            color: 'rose',
+            borderClass: 'border-rose-500/40 hover:border-rose-400 hover:shadow-[0_0_30px_rgba(244,63,94,0.25)]',
+            textAccent: 'text-rose-400',
+            bgGlow: 'bg-rose-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+            children: [
+              { key: '01', label: 'छाती और सांस में दर्द', sub: 'छाती या फेफड़ों में दबाव', speech: 'आपातकालीन चिकित्सा अलर्ट! ... छाती और सांस लेने में गंभीर दर्द है। ... तुरंत जांच करें।', urgent: true },
+              { key: '02', label: 'गंभीर सिरदर्द', sub: 'तेज सिरदर्द या चक्कर', speech: 'चिकित्सा अलर्ट। ... गंभीर सिरदर्द और तीव्र चक्कर आ रहे हैं।' },
+              { key: '03', label: 'पेट में दर्द', sub: 'पेट में तीव्र ऐंठन', speech: 'चिकित्सा अलर्ट। ... पेट में तीव्र दर्द हो रहा है।' },
+              { key: '04', label: 'हाथ / पैर / पीठ दर्द', sub: 'मांसपेशियों में दर्द', speech: 'चिकित्सा अलर्ट। ... हाथ, पैर या पीठ में गंभीर दर्द है।' }
+            ]
+          },
+          {
+            id: 'env',
+            key: '03',
+            title: 'वातावरण',
+            subtitle: 'तापमान • शोर • लाइट • बिस्तर',
+            color: 'amber',
+            borderClass: 'border-amber-500/40 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)]',
+            textAccent: 'text-amber-400',
+            bgGlow: 'bg-amber-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+            children: [
+              { key: '01', label: 'अधिक गर्मी / ठंड', sub: 'कमरे का तापमान ठीक करें', speech: 'सुविधा अनुरोध। ... कमरे में बहुत गर्मी या ठंड है। ... तापमान समायोजित करें।' },
+              { key: '02', label: 'बहुत अधिक शोर', sub: 'शोर कम करने का अनुरोध', speech: 'सुविधा अनुरोध। ... बहुत शोर हो रहा है। ... शांति की आवश्यकता है।' },
+              { key: '03', label: 'लाइट बंद करें', sub: 'कमरे की रोशनी कम करें', speech: 'सुविधा अनुरोध। ... कृपया कमरे की लाइट बंद या धीमी करें।' },
+              { key: '04', label: 'बिस्तर ठीक करें', sub: 'बिस्तर की स्थिति बदलें', speech: 'बिस्तर अनुरोध। ... कृपया बिस्तर की स्थिति समायोजित करें।' }
+            ]
+          },
+          {
+            id: 'emergency',
+            key: '04',
+            title: 'गंभीर आपातकाल',
+            subtitle: 'सांस • घुटन • उल्टी • बेहोशी',
+            color: 'emerald',
+            borderClass: 'border-emerald-500/50 hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.35)]',
+            textAccent: 'text-emerald-400',
+            bgGlow: 'bg-emerald-500/5',
+            urgent: true,
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+            children: [
+              { key: '01', label: 'सांस नहीं आ रही!', sub: 'गंभीर श्वास संकट', speech: 'गंभीर आपातकाल! ... मरीज़ सांस नहीं ले पा रहा है! ... तुरंत आपातकालीन मदद करें!', urgent: true },
+              { key: '02', label: 'दम घुट रहा है!', sub: 'सांस नली में अवरोध', speech: 'गंभीर आपातकाल! ... श्वासनली अवरुद्ध है! ... दम घुट रहा है! ... तुरंत आएं!', urgent: true },
+              { key: '03', label: 'गंभीर उल्टी / मतली', sub: 'अचानक तीव्र मतली', speech: 'गंभीर अलर्ट! ... तीव्र मतली और उल्टी! ... तुरंत सहायता करें!', urgent: true },
+              { key: '04', label: 'बेहोशी आ रही है!', sub: 'होश खोने का खतरा', speech: 'गंभीर अलर्ट! ... मरीज़ बेहोश हो रहा है! ... तुरंत डॉक्टर बुलाएं!', urgent: true }
+            ]
+          }
+        ]
+      },
+      fr: {
+        code: 'fr-FR',
+        name: 'Français',
+        pathHome: 'Accueil',
+        ui: {
+          path: 'CHEMIN :',
+          broadcasting: 'Diffusion...',
+          reset: 'RÉINITIALISER [ESC]',
+          resetShort: 'RÉINIT.',
+          returnHome: 'ACCUEIL',
+          repeat: "RÉPÉTER L'AUDIO [ESPACE / R]",
+          return: 'RETOUR AU TABLEAU [ESC]',
+          select: 'SÉLECTIONNER',
+          key: 'TOUCHE'
+        },
+        categories: [
+          {
+            id: 'help',
+            key: '01',
+            title: "J'AI BESOIN D'AIDE",
+            subtitle: 'Infirmière • Famille • Eau • Toilettes',
+            color: 'cyan',
+            borderClass: 'border-cyan-500/40 hover:border-cyan-400 hover:shadow-[0_0_30px_rgba(6,182,212,0.25)]',
+            textAccent: 'text-cyan-400',
+            bgGlow: 'bg-cyan-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
+            children: [
+              { key: '01', label: 'Infirmière / Soignant', sub: 'Assistance au chevet', speech: "Alerte patient ! ... Présence requise d'une infirmière ou d'un soignant. ... Merci d'intervenir." },
+              { key: '02', label: 'Famille / Médecin', sub: 'Contacter proche ou médecin', speech: 'Alerte patient ! ... Veuillez contacter ma famille ou appeler le médecin référent.' },
+              { key: '03', label: 'Eau / Glaçons', sub: "Demande d'eau fraîche", speech: "Demande patient. ... J'ai besoin d'eau ou de glaçons, s'il vous plaît." },
+              { key: '04', label: 'Toilettes', sub: 'Aide urgente aux toilettes', speech: "Assistance requise. ... J'ai besoin d'aide immédiate pour aller aux toilettes." }
+            ]
+          },
+          {
+            id: 'pain',
+            key: '02',
+            title: 'DOULEUR / INCONFORT',
+            subtitle: 'Poitrine • Tête • Estomac • Membres',
+            color: 'rose',
+            borderClass: 'border-rose-500/40 hover:border-rose-400 hover:shadow-[0_0_30px_rgba(244,63,94,0.25)]',
+            textAccent: 'text-rose-400',
+            bgGlow: 'bg-rose-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+            children: [
+              { key: '01', label: 'Douleur Poitrine & Souffle', sub: 'Pression thoracique aiguë', speech: 'Alerte médicale urgente ! ... Douleur thoracique et respiratoire aiguë. ... Examen immédiat requis.', urgent: true },
+              { key: '02', label: 'Maux de Tête Sévères', sub: 'Migraine aiguë ou vertiges', speech: 'Alerte médicale. ... Maux de tête sévères et vertiges intenses signalés.' },
+              { key: '03', label: "Douleurs d'Estomac", sub: 'Douleur abdominale vive', speech: "Alerte médicale. ... Douleurs abdominales intenses signalées à l'estomac." },
+              { key: '04', label: 'Membres / Dos', sub: 'Douleurs musculosquelettiques', speech: 'Alerte médicale. ... Douleurs aiguës aux membres ou au dos.' }
+            ]
+          },
+          {
+            id: 'env',
+            key: '03',
+            title: 'ENVIRONNEMENT',
+            subtitle: 'Température • Bruit • Éclairage • Lit',
+            color: 'amber',
+            borderClass: 'border-amber-500/40 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(245,158,11,0.25)]',
+            textAccent: 'text-amber-400',
+            bgGlow: 'bg-amber-500/5',
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>`,
+            children: [
+              { key: '01', label: 'Trop Chaud / Trop Froid', sub: 'Thermostat ou couverture', speech: 'Demande de confort. ... La chambre est trop chaude ou trop froide. ... Réglez la température.' },
+              { key: '02', label: 'Trop de Bruit', sub: 'Bruit de couloir ou sonnettes', speech: 'Demande de confort. ... Il y a trop de bruit. ... Réduction sonore souhaitée.' },
+              { key: '03', label: 'Éteindre les Lumières', sub: 'Tamiser éclairage ambiant', speech: "Demande de confort. ... Merci d'éteindre ou tamiser la lumière de la pièce." },
+              { key: '04', label: 'Ajuster le Lit', sub: 'Relever tête ou pieds', speech: 'Demande de lit. ... Veuillez ajuster la position du lit du patient.' }
+            ]
+          },
+          {
+            id: 'emergency',
+            key: '04',
+            title: 'URGENCE CRITIQUE',
+            subtitle: 'Respiration • Étouffement • Nausée • Malaise',
+            color: 'emerald',
+            borderClass: 'border-emerald-500/50 hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.35)]',
+            textAccent: 'text-emerald-400',
+            bgGlow: 'bg-emerald-500/5',
+            urgent: true,
+            iconSvg: `<svg class="w-10 h-10 sm:w-14 sm:h-14 mb-2" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+            children: [
+              { key: '01', label: 'NE PEUT PLUS RESPIRER !', sub: 'Détresse respiratoire aiguë', speech: "URGENCE CRITIQUE ! ... LE PATIENT N'ARRIVE PLUS À RESPIRER ! ... INTERVENTION IMMÉDIATE !", urgent: true },
+              { key: '02', label: 'ÉTOUFFEMENT / SUFFOCATION !', sub: 'Obstruction des voies aériennes', speech: 'URGENCE CRITIQUE ! ... OBSTRUCTION RESPIRATOIRE ! ... SUFFOCATION EN COURS !', urgent: true },
+              { key: '03', label: 'NAUSÉES SÉVÈRES', sub: "Risque aigu d'inhalation", speech: "ALERTE CRITIQUE ! ... Nausées et vomissements aigus ! ... Risque d'inhalation, venez vite !", urgent: true },
+              { key: '04', label: 'PERTE DE CONNAISSANCE', sub: 'Malaise vagal ou syncope', speech: 'ALERTE CRITIQUE ! ... Malaise imminent et perte de connaissance en cours !', urgent: true }
+            ]
+          }
+        ]
+      }
+    };
+
+    // State
+    let currentLang = 'en';
+    let currentCategory = null;
+    let currentLeaf = null;
+    let audioCtx = null;
+    let audioUnlocked = false;
+
+    // Elements
+    const gridEl = document.getElementById('quadrant-grid');
+    const breadcrumbEl = document.getElementById('breadcrumb-text');
+    const announcerEl = document.getElementById('sr-announcer');
+    const langSelectEl = document.getElementById('lang-select');
+    const unlockBannerEl = document.getElementById('audio-unlock-banner');
+    const speakingPillEl = document.getElementById('speaking-pill');
+    const speakingPillMobileEl = document.getElementById('speaking-pill-mobile');
+    const topSpeechBeamEl = document.getElementById('top-speech-beam');
+
+    // Clinical Orientation Clock Elements
+    const clockDateEl = document.getElementById('clock-date');
+    const clockTimeEl = document.getElementById('clock-time');
+    const clockTimeMobileEl = document.getElementById('clock-time-mobile');
+
+    // Category Navigation Sub-Strip Elements
+    const categoryStripEl = document.getElementById('category-strip');
+    const categoryStripTitleEl = document.getElementById('category-strip-title');
+    const labelCategoryReturnEl = document.getElementById('label-category-return');
+    const btnCategoryBackEl = document.getElementById('btn-category-back');
+
+    // UI Label Elements
+    const labelPathEl = document.getElementById('label-path');
+    const labelBroadcastingEl = document.getElementById('label-broadcasting');
+    const labelResetBtnEl = document.getElementById('label-reset-btn');
+    const labelResetBtnMobileEl = document.getElementById('label-reset-btn-mobile');
+    const labelRepeatBtnEl = document.getElementById('label-repeat-btn');
+    const labelReturnBtnEl = document.getElementById('label-return-btn');
+
+    // Distress banner elements
+    const distressBannerEl = document.getElementById('distress-banner');
+    const bannerCategoryEl = document.getElementById('banner-category');
+    const bannerTimestampEl = document.getElementById('banner-timestamp');
+    const bannerTitleEl = document.getElementById('banner-title');
+    const bannerSubtextEl = document.getElementById('banner-subtext');
+    const bannerSpeechQuoteEl = document.getElementById('banner-speech-quote');
+    const bannerIconContainerEl = document.getElementById('banner-icon-container');
+    const bannerAccentDotEl = document.getElementById('banner-accent-dot');
+
+    function updateClinicalClock() {
+      const now = new Date();
+      const localeData = LOCALES[currentLang] || LOCALES.en;
+      try {
+        if (clockDateEl) {
+          clockDateEl.textContent = new Intl.DateTimeFormat(localeData.code, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric'
+          }).format(now).toUpperCase();
+        }
+        if (clockTimeEl) {
+          clockTimeEl.textContent = new Intl.DateTimeFormat(localeData.code, {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          }).format(now);
+        }
+        if (clockTimeMobileEl) {
+          clockTimeMobileEl.textContent = new Intl.DateTimeFormat(localeData.code, {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+          }).format(now);
+        }
+      } catch (e) {
+        if (clockDateEl) clockDateEl.textContent = now.toLocaleDateString();
+        if (clockTimeEl) clockTimeEl.textContent = now.toLocaleTimeString();
+        if (clockTimeMobileEl) clockTimeMobileEl.textContent = now.toLocaleTimeString();
+      }
+    }
+    setInterval(updateClinicalClock, 1000);
+    updateClinicalClock();
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtxClass) {
+          audioCtx = new AudioCtxClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function unlockAudio() {
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      const ctx = getAudioCtx();
+      if (ctx && ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      if (unlockBannerEl) {
+        unlockBannerEl.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => unlockBannerEl.classList.add('hidden'), 300);
+      }
+    }
+
+    // Native Web Audio Hospital 2-Tone Chime
+    function playMedicalChime(isUrgent = false) {
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      try {
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        const freq1 = isUrgent ? 960 : 784;
+        const freq2 = isUrgent ? 1320 : 1046;
+
+        osc.frequency.setValueAtTime(freq1, now);
+        osc.frequency.setValueAtTime(freq2, now + 0.1);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.setValueAtTime(0.25, now + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch (e) {}
+    }
+
+    function setSpeaking(active) {
+      if (active) {
+        if (speakingPillEl) speakingPillEl.classList.remove('hidden');
+        if (speakingPillMobileEl) speakingPillMobileEl.classList.remove('hidden');
+        if (topSpeechBeamEl) topSpeechBeamEl.classList.remove('hidden');
+      } else {
+        if (speakingPillEl) speakingPillEl.classList.add('hidden');
+        if (speakingPillMobileEl) speakingPillMobileEl.classList.add('hidden');
+        if (topSpeechBeamEl) topSpeechBeamEl.classList.add('hidden');
+      }
+    }
+
+    function announce(text) {
+      if (announcerEl) announcerEl.textContent = text;
+    }
+
+    // Localized Human Speech Synthesis
+    function speakPhrase(phrase, isUrgent = false) {
+      unlockAudio();
+      playMedicalChime(isUrgent);
+
+      if (!('speechSynthesis' in window)) return;
+      try {
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(phrase);
+        const localeData = LOCALES[currentLang] || LOCALES.en;
+        utterance.lang = localeData.code;
+
+        utterance.rate = isUrgent ? 1.0 : 0.88;
+        utterance.pitch = isUrgent ? 1.15 : 1.0;
+        utterance.volume = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        const langPrefix = localeData.code.split('-')[0];
+
+        const bestVoice = voices.find(v => 
+          v.lang.startsWith(langPrefix) && 
+          (v.name.includes('Natural') || v.name.includes('Enhanced') || v.name.includes('Google') || v.name.includes('Online'))
+        ) || voices.find(v => v.lang.startsWith(langPrefix)) || voices[0];
+
+        if (bestVoice) {
+          utterance.voice = bestVoice;
+        }
+
+        setSpeaking(true);
+
+        utterance.onstart = () => setSpeaking(true);
+        utterance.onend = () => setSpeaking(false);
+        utterance.onerror = () => setSpeaking(false);
+
+        setTimeout(() => {
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.speak(utterance);
+          }
+        }, 160);
+
+        setTimeout(() => setSpeaking(false), 9000);
+      } catch (e) {
+        setSpeaking(false);
+      }
+    }
+
+    function updateStaticLabels() {
+      const localeData = LOCALES[currentLang] || LOCALES.en;
+      const ui = localeData.ui;
+      if (labelPathEl) labelPathEl.textContent = ui.path;
+      if (labelBroadcastingEl) labelBroadcastingEl.textContent = ui.broadcasting;
+      if (labelResetBtnEl) labelResetBtnEl.textContent = ui.reset;
+      if (labelResetBtnMobileEl) labelResetBtnMobileEl.textContent = ui.resetShort || 'RESET';
+      if (labelRepeatBtnEl) labelRepeatBtnEl.textContent = ui.repeat;
+      if (labelReturnBtnEl) labelReturnBtnEl.textContent = ui.return;
+    }
+
+    function render() {
+      const localeData = LOCALES[currentLang] || LOCALES.en;
+      updateStaticLabels();
+
+      if (currentLeaf) {
+        if (categoryStripEl) categoryStripEl.classList.add('hidden');
+        gridEl.classList.add('hidden');
+        distressBannerEl.classList.remove('hidden');
+
+        bannerCategoryEl.textContent = currentCategory ? currentCategory.title : 'EMERGENCY';
+        bannerTitleEl.textContent = currentLeaf.label;
+        bannerSubtextEl.textContent = currentLeaf.sub || '';
+        bannerSpeechQuoteEl.textContent = `"${currentLeaf.speech}"`;
+        bannerTimestampEl.textContent = `Time: ${new Date().toLocaleTimeString()}`;
+
+        const isUrgent = currentLeaf.urgent || (currentCategory && currentCategory.urgent);
+        if (isUrgent) {
+          bannerAccentDotEl.className = 'w-3.5 h-3.5 rounded-full bg-emerald-400 animate-ping';
+          bannerIconContainerEl.className = 'mb-3 sm:mb-4 text-emerald-400';
+        } else if (currentCategory && currentCategory.color === 'rose') {
+          bannerAccentDotEl.className = 'w-3.5 h-3.5 rounded-full bg-rose-400 animate-ping';
+          bannerIconContainerEl.className = 'mb-3 sm:mb-4 text-rose-400';
+        } else if (currentCategory && currentCategory.color === 'amber') {
+          bannerAccentDotEl.className = 'w-3.5 h-3.5 rounded-full bg-amber-400 animate-ping';
+          bannerIconContainerEl.className = 'mb-3 sm:mb-4 text-amber-400';
+        } else {
+          bannerAccentDotEl.className = 'w-3.5 h-3.5 rounded-full bg-cyan-400 animate-ping';
+          bannerIconContainerEl.className = 'mb-3 sm:mb-4 text-cyan-400';
+        }
+
+        breadcrumbEl.textContent = currentCategory ? `${localeData.pathHome} > ${currentCategory.title} > ${currentLeaf.label}` : currentLeaf.label;
+        breadcrumbEl.className = 'font-mono text-cyan-400 font-semibold truncate';
+        return;
+      }
+
+      distressBannerEl.classList.add('hidden');
+      gridEl.classList.remove('hidden');
+
+      if (currentCategory) {
+        if (categoryStripEl) {
+          categoryStripEl.classList.remove('hidden');
+          if (categoryStripTitleEl) categoryStripTitleEl.textContent = currentCategory.title;
+          if (labelCategoryReturnEl) labelCategoryReturnEl.textContent = localeData.ui.returnHome || 'MAIN MENU';
+        }
+
+        breadcrumbEl.textContent = `${localeData.pathHome} > ${currentCategory.title}`;
+        breadcrumbEl.className = 'font-medium tracking-wide text-cyan-300 truncate';
+
+        renderCards(currentCategory.children.map(item => ({
+          key: item.key,
+          title: item.label,
+          subtitle: item.sub,
+          iconSvg: currentCategory.iconSvg,
+          color: currentCategory.color,
+          borderClass: currentCategory.borderClass,
+          textAccent: currentCategory.textAccent,
+          bgGlow: currentCategory.bgGlow,
+          action: () => triggerLeaf(item)
+        })));
+      } else {
+        if (categoryStripEl) categoryStripEl.classList.add('hidden');
+
+        breadcrumbEl.textContent = localeData.pathHome;
+        breadcrumbEl.className = 'font-medium tracking-wide text-slate-300 truncate';
+
+        renderCards(localeData.categories.map(cat => ({
+          key: cat.key,
+          title: cat.title,
+          subtitle: cat.subtitle,
+          iconSvg: cat.iconSvg,
+          color: cat.color,
+          borderClass: cat.borderClass,
+          textAccent: cat.textAccent,
+          bgGlow: cat.bgGlow,
+          action: () => selectCategory(cat)
+        })));
+      }
+    }
+
+    function getThemeStyles(color) {
+      switch (color) {
+        case 'cyan':
+          return {
+            card: 'border-3 sm:border-4 border-cyan-400 hover:border-cyan-300 bg-gradient-to-br from-cyan-950/85 via-slate-900/95 to-cyan-950/50 hover:from-cyan-900/90 shadow-[0_0_24px_rgba(34,211,238,0.25)] hover:shadow-[0_0_36px_rgba(34,211,238,0.45)] focus-visible:ring-cyan-400',
+            number: 'text-cyan-300 bg-cyan-950/90 border-2 border-cyan-400/80 shadow-[0_0_12px_rgba(34,211,238,0.3)]',
+            icon: 'text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]',
+            pill: 'text-cyan-200 bg-cyan-950/90 border border-cyan-400/80',
+            dot: 'bg-cyan-400'
+          };
+        case 'rose':
+          return {
+            card: 'border-3 sm:border-4 border-rose-500 hover:border-rose-400 bg-gradient-to-br from-rose-950/85 via-slate-900/95 to-rose-950/50 hover:from-rose-900/90 shadow-[0_0_24px_rgba(244,63,94,0.25)] hover:shadow-[0_0_36px_rgba(244,63,94,0.45)] focus-visible:ring-rose-400',
+            number: 'text-rose-300 bg-rose-950/90 border-2 border-rose-400/80 shadow-[0_0_12px_rgba(244,63,94,0.3)]',
+            icon: 'text-rose-400 drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]',
+            pill: 'text-rose-200 bg-rose-950/90 border border-rose-400/80',
+            dot: 'bg-rose-400'
+          };
+        case 'amber':
+          return {
+            card: 'border-3 sm:border-4 border-amber-400 hover:border-amber-300 bg-gradient-to-br from-amber-950/85 via-slate-900/95 to-amber-950/50 hover:from-amber-900/90 shadow-[0_0_24px_rgba(251,191,36,0.25)] hover:shadow-[0_0_36px_rgba(251,191,36,0.45)] focus-visible:ring-amber-400',
+            number: 'text-amber-300 bg-amber-950/90 border-2 border-amber-400/80 shadow-[0_0_12px_rgba(251,191,36,0.3)]',
+            icon: 'text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]',
+            pill: 'text-amber-200 bg-amber-950/90 border border-amber-400/80',
+            dot: 'bg-amber-400'
+          };
+        case 'emerald':
+        default:
+          return {
+            card: 'border-3 sm:border-4 border-emerald-400 hover:border-emerald-300 bg-gradient-to-br from-emerald-950/90 via-slate-900/95 to-emerald-950/55 hover:from-emerald-900/90 shadow-[0_0_24px_rgba(52,211,153,0.3)] hover:shadow-[0_0_40px_rgba(52,211,153,0.6)] focus-visible:ring-emerald-400',
+            number: 'text-emerald-300 bg-emerald-950/90 border-2 border-emerald-400/80 shadow-[0_0_12px_rgba(52,211,153,0.35)]',
+            icon: 'text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]',
+            pill: 'text-emerald-200 bg-emerald-950/90 border border-emerald-400/80',
+            dot: 'bg-emerald-400'
+          };
+      }
+    }
+
+    function renderCards(cards) {
+      gridEl.innerHTML = '';
+      const localeData = LOCALES[currentLang] || LOCALES.en;
+      const ui = localeData.ui;
+
+      cards.forEach(card => {
+        const theme = getThemeStyles(card.color);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `group relative w-full h-full min-h-0 rounded-xl sm:rounded-2xl ${theme.card} p-2.5 sm:p-4 md:p-6 flex flex-col justify-between text-left transition-all duration-150 cursor-pointer overflow-hidden select-none touch-manipulation focus-visible:outline-none focus-visible:ring-4 active:scale-[0.98]`;
+        btn.setAttribute('aria-label', `Card ${card.key}: ${card.title}. ${card.subtitle || ''}`);
+
+        btn.innerHTML = `
+          <!-- Top Row: High-Contrast Key Badge "01"-"04" + Status Accent Dot -->
+          <div class="flex items-center justify-between w-full">
+            <span class="px-2 sm:px-2.5 py-0.5 rounded-lg sm:rounded-xl font-mono text-base sm:text-2xl md:text-3xl font-black tracking-tight leading-tight ${theme.number}">
+              ${card.key}
+            </span>
+            <div class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse ${theme.dot}"></div>
+          </div>
+
+          <!-- Center Content: Icon + High-Contrast Medical Typography -->
+          <div class="my-auto py-1 flex flex-col items-start max-w-full min-w-0">
+            <div class="${theme.icon} mb-1 sm:mb-2 transform group-hover:scale-110 transition-transform">
+              ${card.iconSvg}
+            </div>
+            <h2 class="text-xs sm:text-lg md:text-2xl lg:text-3xl font-black tracking-tight text-white uppercase leading-snug line-clamp-2">
+              ${card.title}
+            </h2>
+            <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm font-medium text-slate-200 line-clamp-1 sm:line-clamp-2">
+              ${card.subtitle || ''}
+            </p>
+          </div>
+
+          <!-- Bottom Row: High-Contrast Key Shortcut Cue -->
+          <div class="w-full pt-1.5 sm:pt-2 flex items-center justify-between border-t border-white/10 text-[10px] sm:text-xs font-mono">
+            <span class="tracking-wider uppercase text-slate-300 hidden sm:inline">${ui.select}</span>
+            <span class="px-2 py-0.5 rounded font-bold transition-all ${theme.pill}">
+              [${ui.key} ${card.key.replace(/^0/, '')}]
+            </span>
+          </div>
+        `;
+
+        btn.onclick = card.action;
+        gridEl.appendChild(btn);
+      });
+    }
+
+    function triggerHaptic(pattern) {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate(pattern);
+        } catch (e) {}
+      }
+    }
+
+    function selectCategory(cat) {
+      unlockAudio();
+      triggerHaptic([50, 30, 50]); // Confirmation pulse on menu navigation
+      currentCategory = cat;
+      announce(`Opened ${cat.title}. Choose 1, 2, 3, or 4.`);
+      render();
+    }
+
+    function triggerLeaf(leaf) {
+      currentLeaf = leaf;
+      const isUrgent = leaf.urgent || (currentCategory && currentCategory.urgent);
+
+      if (isUrgent) {
+        triggerHaptic([200, 100, 200, 100, 400]); // Heavy emergency vibration pattern
+      } else {
+        triggerHaptic(30); // Light tap feedback
+      }
+
+      announce(`BROADCASTING: ${leaf.speech}`);
+      speakPhrase(leaf.speech, isUrgent);
+      render();
+    }
+
+    function resetOrBack() {
+      unlockAudio();
+      triggerHaptic([50, 30, 50]); // Confirmation pulse
+      if (currentLeaf) {
+        currentLeaf = null;
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        announce('Returned to options.');
+        render();
+        return;
+      }
+      if (currentCategory) {
+        currentCategory = null;
+        announce('Returned to main triage menu.');
+        render();
+        return;
+      }
+    }
+
+    function fullReset() {
+      unlockAudio();
+      triggerHaptic([50, 30, 50]); // Confirmation pulse
+      currentCategory = null;
+      currentLeaf = null;
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      announce('Reset to Home menu.');
+      render();
+    }
+
+    function repeatSpeech() {
+      if (!currentLeaf) return;
+      triggerHaptic(30);
+      const isUrgent = currentLeaf.urgent || (currentCategory && currentCategory.urgent);
+      speakPhrase(currentLeaf.speech, isUrgent);
+    }
+
+    // Attach Event Handlers
+    document.getElementById('btn-reset').onclick = fullReset;
+    if (btnCategoryBackEl) btnCategoryBackEl.onclick = fullReset;
+    document.getElementById('btn-banner-close').onclick = resetOrBack;
+    document.getElementById('btn-dismiss-overlay').onclick = resetOrBack;
+    document.getElementById('banner-center-trigger').onclick = resetOrBack;
+    document.getElementById('btn-repeat-speech').onclick = repeatSpeech;
+    document.getElementById('btn-unlock-audio').onclick = unlockAudio;
+
+    langSelectEl.onchange = (e) => {
+      currentLang = e.target.value;
+      updateClinicalClock();
+      if (currentCategory) {
+        const newCat = LOCALES[currentLang].categories.find(c => c.id === currentCategory.id);
+        currentCategory = newCat || null;
+      }
+      if (currentLeaf && currentCategory) {
+        const newLeaf = currentCategory.children.find(l => l.key === currentLeaf.key);
+        currentLeaf = newLeaf || null;
+      }
+      render();
+    };
+
+    const autoUnlock = () => {
+      unlockAudio();
+      window.removeEventListener('pointerdown', autoUnlock);
+    };
+    window.addEventListener('pointerdown', autoUnlock, { passive: true });
+
+    window.addEventListener('keydown', (e) => {
+      unlockAudio();
+      const key = e.key;
+
+      if (key === 'Escape') {
+        e.preventDefault();
+        resetOrBack();
+        return;
+      }
+
+      if (key === ' ' || key === 'Spacebar') {
+        if (currentLeaf) {
+          e.preventDefault();
+          repeatSpeech();
+          return;
+        }
+      }
+
+      if (key === 'r' || key === 'R') {
+        if (currentLeaf) {
+          e.preventDefault();
+          repeatSpeech();
+          return;
+        }
+      }
+
+      let num = null;
+      if (key === '1' || key === 'Numpad1') num = 1;
+      else if (key === '2' || key === 'Numpad2') num = 2;
+      else if (key === '3' || key === 'Numpad3') num = 3;
+      else if (key === '4' || key === 'Numpad4') num = 4;
+
+      if (num !== null) {
+        e.preventDefault();
+        const localeData = LOCALES[currentLang] || LOCALES.en;
+
+        if (currentLeaf) {
+          currentLeaf = null;
+          currentCategory = null;
+        }
+
+        if (!currentCategory) {
+          const cat = localeData.categories[num - 1];
+          if (cat) selectCategory(cat);
+        } else {
+          const leaf = currentCategory.children[num - 1];
+          if (leaf) triggerLeaf(leaf);
+        }
+      }
+    });
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+
+    render();
+  </script>
+</body>
+</html>

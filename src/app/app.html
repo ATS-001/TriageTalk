@@ -1,0 +1,360 @@
+<!-- Screen Reader Live Announcements -->
+<div class="sr-only" role="status" aria-live="assertive" aria-atomic="true">
+  {{ announcement() }}
+</div>
+
+<main class="relative h-screen w-screen flex flex-col bg-[#0f172a] text-slate-100 overflow-hidden select-none font-sans">
+  
+  <!-- Subtle Autoplay Audio Unlock Banner -->
+  @if (!audioUnlocked()) {
+    <aside
+      class="fixed top-18 sm:top-20 inset-x-3 sm:inset-x-8 z-40 bg-slate-900/95 border border-cyan-500/40 text-slate-200 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 text-sm animate-fade-in"
+      role="alert"
+    >
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping shrink-0"></span>
+        <p class="truncate font-medium text-xs sm:text-sm">
+          <strong class="text-white">Audio initialization:</strong> Click anywhere or press any key to enable emergency speech audio.
+        </p>
+      </div>
+      <button
+        type="button"
+        (click)="unlockAudio()"
+        class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-mono text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer shrink-0"
+      >
+        Enable Audio
+      </button>
+    </aside>
+  }
+
+  <!-- Top Active Speaking Indicator Beam -->
+  @if (isSpeaking()) {
+    <div
+      class="fixed top-0 inset-x-0 z-50 h-1 bg-gradient-to-r from-cyan-400 via-emerald-400 to-cyan-400 shadow-[0_0_12px_#06b6d4]"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <!-- HEADER BAR (Responsive Clinical Orientation Clock & Big Disability Reset Button) -->
+  <header
+    class="min-h-14 sm:min-h-16 md:min-h-18 shrink-0 bg-[#0f172a]/95 border-b border-slate-800 px-2.5 sm:px-4 md:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-1.5 sm:gap-3 md:gap-4 z-30 backdrop-blur-md"
+    role="banner"
+  >
+    <!-- Left: Brand Title & Desktop Breadcrumbs -->
+    <div class="flex items-center gap-2 sm:gap-3 md:gap-4 min-w-0 shrink">
+      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-lg bg-slate-800/90 border border-slate-700 flex items-center justify-center text-cyan-400 font-black text-xs sm:text-sm md:text-base shadow-inner">
+          +
+        </div>
+        <span class="font-bold text-sm sm:text-base md:text-lg tracking-tight text-white flex items-center gap-1.5 truncate">
+          TriageTalk
+          <span class="text-[9px] sm:text-[10px] font-mono tracking-widest uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 hidden xl:inline">
+            AAC v2.0
+          </span>
+        </span>
+      </div>
+
+      <span class="text-slate-700 text-lg hidden lg:inline" aria-hidden="true">/</span>
+
+      <!-- Breadcrumbs Path (Large Screens) -->
+      <nav aria-label="Breadcrumb" class="truncate hidden lg:flex items-center gap-1.5 text-xs sm:text-sm min-w-0">
+        <span class="font-mono text-slate-500">{{ currentUI().path }}</span>
+        <span
+          class="font-medium tracking-wide truncate max-w-44 xl:max-w-xs"
+          [class.text-cyan-300]="activeCategory() !== null"
+          [class.text-slate-300]="activeCategory() === null"
+        >
+          {{ breadcrumb() }}
+        </span>
+      </nav>
+    </div>
+
+    <!-- Center: PERSISTENT CLINICAL ORIENTATION CLOCK (Date & Time for Disoriented Patients) -->
+    <div
+      class="flex items-center gap-1.5 sm:gap-2.5 px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-lg sm:rounded-xl bg-slate-900/90 border border-slate-800 shadow-inner shrink-0"
+      aria-label="Current date and time"
+      role="timer"
+    >
+      <div class="flex items-center gap-1 text-emerald-400 shrink-0">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <mat-icon class="text-xs sm:text-sm hidden sm:inline-block">schedule</mat-icon>
+      </div>
+      <div class="flex items-center gap-1.5 sm:gap-2 text-left font-mono leading-tight">
+        <!-- Date (hidden on mobile, visible on sm+) -->
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-400 tracking-wider uppercase whitespace-nowrap hidden sm:inline">
+          {{ formattedDate() }}
+        </span>
+        <span class="text-slate-700 hidden sm:inline" aria-hidden="true">•</span>
+        <!-- Time (Compact on mobile, full with seconds on sm+) -->
+        <span class="sm:hidden text-xs font-bold text-white tracking-wider tabular-nums whitespace-nowrap">
+          {{ formattedTimeShort() }}
+        </span>
+        <span class="hidden sm:inline text-xs sm:text-sm font-bold text-white tracking-widest tabular-nums whitespace-nowrap">
+          {{ formattedTime() }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Right Controls: Speaking Pill, Language Selector, and BIG DISABILITY-STYLED RESET BUTTON -->
+    <div class="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
+      <!-- Speaking State Pill (Desktop/Tablet) -->
+      @if (isSpeaking()) {
+        <div
+          class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-medium shadow-[0_0_15px_rgba(6,182,212,0.3)] animate-pulse"
+        >
+          <div class="flex items-center gap-0.5 h-3" aria-hidden="true">
+            <span class="w-0.5 bg-cyan-400 rounded-full sound-bar" style="animation-delay: 0.1s;"></span>
+            <span class="w-0.5 bg-cyan-300 rounded-full sound-bar" style="animation-delay: 0.25s;"></span>
+            <span class="w-0.5 bg-cyan-200 rounded-full sound-bar" style="animation-delay: 0.4s;"></span>
+            <span class="w-0.5 bg-cyan-400 rounded-full sound-bar" style="animation-delay: 0.15s;"></span>
+          </div>
+          <span class="tracking-wider uppercase text-[11px] hidden xl:inline">{{ currentUI().broadcasting }}</span>
+        </div>
+        <!-- Mobile Speaking Mini Indicator -->
+        <div class="md:hidden flex items-center justify-center w-7 h-7 rounded-lg bg-cyan-950/90 border border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.5)] animate-pulse" title="Audio Broadcasting">
+          <mat-icon class="text-xs">volume_up</mat-icon>
+        </div>
+      }
+
+      <!-- Language Selector Dropdown (Compact width on mobile, full on tablet+) -->
+      <div class="relative shrink-0">
+        <label for="app-lang-select" class="sr-only">Select Language</label>
+        <select
+          id="app-lang-select"
+          (change)="onLanguageSelectChange($event)"
+          [value]="currentLang()"
+          class="h-10 sm:h-11 md:h-12 w-14 sm:w-auto px-1.5 sm:px-3 rounded-lg sm:rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-mono text-xs sm:text-sm font-bold cursor-pointer transition-colors focus:ring-2 focus:ring-cyan-500/50 outline-none text-center sm:text-left shadow-inner"
+        >
+          <option value="en">[EN] English</option>
+          <option value="es">[ES] Español</option>
+          <option value="hi">[HI] हिन्दी</option>
+          <option value="fr">[FR] Français</option>
+        </select>
+      </div>
+
+      <!-- BIG DISABILITY-ACCESSIBLE EMERGENCY RESET BUTTON -->
+      <button
+        type="button"
+        (click)="fullReset()"
+        class="group relative min-h-[44px] h-10 sm:h-11 md:h-12 px-2.5 sm:px-4 md:px-5 rounded-lg sm:rounded-xl bg-rose-950/90 hover:bg-rose-900 active:bg-rose-800 border-2 border-rose-500 hover:border-rose-400 text-white font-mono text-xs sm:text-sm font-black tracking-wider uppercase transition-all duration-150 flex items-center gap-1.5 sm:gap-2 cursor-pointer shadow-[0_0_20px_rgba(244,63,94,0.35)] hover:shadow-[0_0_28px_rgba(244,63,94,0.55)] active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 touch-manipulation select-none shrink-0"
+        title="Emergency Reset to Home (ESC)"
+        aria-label="Emergency Reset to Home. Press Escape or tap this button."
+      >
+        <span class="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg bg-rose-500/30 border border-rose-400/60 text-rose-300 group-hover:text-white group-hover:bg-rose-500/50 transition-colors shrink-0">
+          <mat-icon class="text-base sm:text-lg">restart_alt</mat-icon>
+        </span>
+        <div class="flex items-baseline gap-1">
+          <span class="text-rose-100 group-hover:text-white font-black sm:hidden">
+            {{ currentUI().resetShort || 'RESET' }}
+          </span>
+          <span class="text-rose-100 group-hover:text-white font-black hidden sm:inline">
+            {{ currentUI().reset }}
+          </span>
+        </div>
+      </button>
+    </div>
+  </header>
+
+  <!-- MOBILE-AWARE CATEGORY STATUS / BREADCRUMB STRIP (When inside Level 1 elimination tree) -->
+  @if (activeCategory() && !activeLeaf()) {
+    <div
+      class="bg-slate-900/95 border-b border-cyan-500/30 px-2.5 sm:px-4 md:px-6 py-1.5 flex items-center justify-between gap-2 text-xs sm:text-sm font-mono shrink-0 shadow-md backdrop-blur-md"
+      role="navigation"
+      aria-label="Active Category Navigation"
+    >
+      <div class="flex items-center gap-1.5 sm:gap-2 truncate min-w-0">
+        <span class="text-cyan-400 font-bold flex items-center gap-1 shrink-0">
+          <mat-icon class="text-sm sm:text-base">folder_open</mat-icon>
+          <span class="text-[10px] sm:text-xs text-slate-400 uppercase font-semibold">CATEGORY:</span>
+        </span>
+        <span class="text-white font-black uppercase tracking-wide truncate text-xs sm:text-sm">
+          {{ activeCategory()?.title }}
+        </span>
+      </div>
+
+      <!-- Quick Back to Home Button -->
+      <button
+        type="button"
+        (click)="fullReset()"
+        class="text-rose-300 hover:text-white bg-rose-950/60 hover:bg-rose-900/80 border border-rose-500/50 hover:border-rose-400 rounded-lg px-2 sm:px-3 py-1 font-mono text-[11px] sm:text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shrink-0 shadow-sm"
+        title="Return to main categories"
+        aria-label="Return to all 4 main categories"
+      >
+        <mat-icon class="text-xs sm:text-sm">arrow_back</mat-icon>
+        <span>{{ currentUI().returnHome || 'HOME' }}</span>
+      </button>
+    </div>
+  }
+
+  <!-- RESPONSIVE 2x2 SCREEN GRID: NO SCROLLBAR, FULL VIEWPORT FIT WITH VIVID COLOR CONTRASTED BUTTONS -->
+  @if (!activeLeaf()) {
+    <section
+      class="flex-1 grid grid-cols-2 grid-rows-2 gap-2 sm:gap-3.5 md:gap-5 p-2 sm:p-3.5 md:p-5 min-h-0 h-full overflow-hidden"
+      aria-label="Triage Navigation Quadrants"
+    >
+      @for (card of currentCards(); track card.key) {
+        <button
+          type="button"
+          (click)="selectQuadrantByNum(card.num)"
+          class="group relative w-full h-full min-h-0 rounded-xl sm:rounded-2xl p-2.5 sm:p-4 md:p-6 flex flex-col justify-between text-left transition-all duration-150 cursor-pointer overflow-hidden select-none touch-manipulation focus-visible:outline-none focus-visible:ring-4 active:scale-[0.98]"
+          [class]="card.theme.cardClass"
+          [attr.aria-label]="'Card ' + card.key + ': ' + card.title + '. ' + card.subtitle"
+        >
+          <!-- Top Row: High-Contrast Key Badge "01"-"04" + Color Pulse Indicator -->
+          <div class="flex items-center justify-between w-full">
+            <span
+              class="px-2 sm:px-2.5 py-0.5 rounded-lg sm:rounded-xl font-mono text-base sm:text-2xl md:text-3xl font-black tracking-tight leading-tight"
+              [class]="card.theme.numberClass"
+            >
+              {{ card.key }}
+            </span>
+            <div
+              class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-pulse"
+              [class]="card.theme.dotClass"
+            ></div>
+          </div>
+
+          <!-- Center Content: Icon + High-Contrast Medical Typography -->
+          <div class="my-auto py-1 flex flex-col items-start max-w-full min-w-0">
+            <div
+              class="mb-1 sm:mb-2 transform group-hover:scale-110 transition-transform"
+              [class]="card.theme.iconClass"
+            >
+              <mat-icon
+                class="text-2xl sm:text-4xl md:text-5xl"
+                style="width: auto; height: auto; font-size: inherit;"
+              >
+                {{ card.icon }}
+              </mat-icon>
+            </div>
+            <h2 class="text-xs sm:text-lg md:text-2xl lg:text-3xl font-black tracking-tight text-white uppercase leading-snug line-clamp-2">
+              {{ card.title }}
+            </h2>
+            <p class="mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm font-medium text-slate-200 line-clamp-1 sm:line-clamp-2">
+              {{ card.subtitle }}
+            </p>
+          </div>
+
+          <!-- Bottom Row: High-Contrast Key Shortcut Cue -->
+          <div class="w-full pt-1.5 sm:pt-2 flex items-center justify-between border-t border-white/10 text-[10px] sm:text-xs font-mono">
+            <span class="tracking-wider uppercase text-slate-300 hidden sm:inline">{{ currentUI().select }}</span>
+            <span
+              class="px-2 py-0.5 rounded font-bold transition-all"
+              [class]="card.theme.pillClass"
+            >
+              [{{ currentUI().key }} {{ card.num }}]
+            </span>
+          </div>
+        </button>
+      }
+    </section>
+  }
+
+  <!-- FULL-SCREEN VISUAL & AUDIO DISTRESS OVERLAY BANNER -->
+  @if (activeLeaf(); as leaf) {
+    <div
+      class="fixed inset-0 z-50 flex flex-col justify-between p-5 sm:p-8 md:p-14 bg-[#0f172a]/95 backdrop-blur-2xl transition-all"
+      role="alert"
+      aria-live="assertive"
+    >
+      <!-- Top Meta Bar -->
+      <div class="flex items-center justify-between w-full border-b border-slate-800 pb-3 sm:pb-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <span
+            class="w-3.5 h-3.5 rounded-full animate-ping shrink-0"
+            [class.bg-emerald-400]="leaf.urgent || activeCategory()?.urgent"
+            [class.bg-rose-400]="!leaf.urgent && activeCategory()?.color === 'rose'"
+            [class.bg-amber-400]="!leaf.urgent && activeCategory()?.color === 'amber'"
+            [class.bg-cyan-400]="!leaf.urgent && (!activeCategory() || activeCategory()?.color === 'cyan')"
+          ></span>
+          <div class="text-left truncate">
+            <div class="text-[11px] sm:text-xs font-mono tracking-widest text-slate-400 uppercase">
+              CLINICAL TRIAGE BROADCAST
+            </div>
+            <div class="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+              {{ activeCategory()?.title || 'EMERGENCY' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          @if (alertTimestamp(); as time) {
+            <div class="font-mono text-xs text-slate-400 bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800 hidden sm:inline">
+              Time: {{ time | date:'HH:mm:ss' }}
+            </div>
+          }
+          <button
+            type="button"
+            (click)="resetOrBack()"
+            class="h-9 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-semibold uppercase tracking-wider border border-slate-700 transition-colors cursor-pointer"
+            aria-label="Dismiss Alert (ESC)"
+          >
+            DISMISS [ESC]
+          </button>
+        </div>
+      </div>
+
+      <!-- Giant Typography Message Center -->
+      <button
+        type="button"
+        (click)="resetOrBack()"
+        class="my-auto py-4 flex flex-col items-center justify-center text-center max-w-5xl mx-auto cursor-pointer bg-transparent border-0 text-white focus:outline-none"
+        title="Click anywhere to return"
+        [attr.aria-label]="'Alert Phrase: ' + leaf.label + '. Click to dismiss.'"
+      >
+        <div
+          class="mb-3 sm:mb-4 opacity-90"
+          [class.text-emerald-400]="leaf.urgent || activeCategory()?.urgent"
+          [class.text-rose-400]="!leaf.urgent && activeCategory()?.color === 'rose'"
+          [class.text-amber-400]="!leaf.urgent && activeCategory()?.color === 'amber'"
+          [class.text-cyan-400]="!leaf.urgent && (!activeCategory() || activeCategory()?.color === 'cyan')"
+        >
+          <mat-icon
+            class="text-5xl sm:text-7xl md:text-8xl"
+            style="width: auto; height: auto; font-size: inherit;"
+          >
+            {{ activeCategory()?.icon || 'crisis_alert' }}
+          </mat-icon>
+        </div>
+
+        <!-- Giant phrase -->
+        <h1 class="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tight uppercase leading-tight drop-shadow-xl">
+          {{ leaf.label }}
+        </h1>
+
+        <p class="mt-2 sm:mt-4 text-sm sm:text-lg md:text-2xl text-slate-300 font-medium max-w-2xl">
+          {{ leaf.sub }}
+        </p>
+
+        <!-- Spoken transcript banner -->
+        <div class="mt-5 sm:mt-8 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-slate-900/90 border border-slate-700/80 text-cyan-300 text-xs sm:text-base md:text-lg font-mono max-w-3xl flex items-center gap-3 shadow-2xl">
+          <mat-icon class="text-lg sm:text-2xl text-cyan-400 shrink-0">record_voice_over</mat-icon>
+          <span class="truncate italic text-left">"{{ leaf.speech }}"</span>
+        </div>
+      </button>
+
+      <!-- Bottom Actions (Big Disability Accessible Targets) -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 w-full pt-4 sm:pt-6 border-t border-slate-800">
+        <button
+          type="button"
+          (click)="repeatSpeech()"
+          class="w-full sm:w-auto min-h-[48px] h-12 sm:h-14 px-6 sm:px-8 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-mono text-sm sm:text-base font-extrabold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-300"
+          title="Repeat Speech Broadcast (Space or R)"
+        >
+          <mat-icon class="text-xl sm:text-2xl">volume_up</mat-icon>
+          <span>{{ currentUI().repeat }} [R]</span>
+        </button>
+
+        <button
+          type="button"
+          (click)="resetOrBack()"
+          class="w-full sm:w-auto min-h-[48px] h-12 sm:h-14 px-6 sm:px-8 rounded-xl bg-rose-950/80 hover:bg-rose-900 active:bg-rose-800 text-white border-2 border-rose-500 hover:border-rose-400 font-mono text-sm sm:text-base font-extrabold tracking-wider uppercase transition-all shadow-[0_0_20px_rgba(244,63,94,0.35)] active:scale-95 flex items-center justify-center gap-2.5 cursor-pointer focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-rose-400"
+          title="Return to Menu (ESC)"
+        >
+          <mat-icon class="text-xl sm:text-2xl">restart_alt</mat-icon>
+          <span>{{ currentUI().return }} [ESC]</span>
+        </button>
+      </div>
+    </div>
+  }
+</main>
